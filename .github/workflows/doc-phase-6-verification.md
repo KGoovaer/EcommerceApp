@@ -2,13 +2,12 @@
 name: Doc Pipeline — 6 Verification
 description: Documentation pipeline phase 6 of 6 — cross-check all documentation against source code
 on:
-  workflow_run:
-    workflows:
-      - "Doc Pipeline — 5 Coordination"
-    types:
-      - completed
-    branches:
-      - master
+  workflow_dispatch:
+    inputs:
+      module_name:
+        description: "Module name (default: EcommerceApp)"
+        required: false
+        default: "EcommerceApp"
 timeout-minutes: 60
 permissions:
   contents: read

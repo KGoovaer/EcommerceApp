@@ -2,13 +2,12 @@
 name: Doc Pipeline — 2 Discovery
 description: Documentation pipeline phase 2 of 6 — Java code analysis, servlet/DAO/entity discovery
 on:
-  workflow_run:
-    workflows:
-      - "Doc Pipeline — 1 Planning"
-    types:
-      - completed
-    branches:
-      - master
+  workflow_dispatch:
+    inputs:
+      module_name:
+        description: "Module name (default: EcommerceApp)"
+        required: false
+        default: "EcommerceApp"
 timeout-minutes: 60
 permissions:
   contents: read

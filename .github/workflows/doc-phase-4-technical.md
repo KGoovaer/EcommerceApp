@@ -2,13 +2,12 @@
 name: Doc Pipeline — 4 Technical
 description: Documentation pipeline phase 4 of 6 — derive functional and technical requirements from business docs
 on:
-  workflow_run:
-    workflows:
-      - "Doc Pipeline — 3 Business"
-    types:
-      - completed
-    branches:
-      - master
+  workflow_dispatch:
+    inputs:
+      module_name:
+        description: "Module name (default: EcommerceApp)"
+        required: false
+        default: "EcommerceApp"
 timeout-minutes: 60
 permissions:
   contents: read

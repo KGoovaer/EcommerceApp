@@ -2,13 +2,12 @@
 name: Doc Pipeline — 5 Coordination
 description: Documentation pipeline phase 5 of 6 — build indexes, traceability matrices, and system overview
 on:
-  workflow_run:
-    workflows:
-      - "Doc Pipeline — 4 Technical"
-    types:
-      - completed
-    branches:
-      - master
+  workflow_dispatch:
+    inputs:
+      module_name:
+        description: "Module name (default: EcommerceApp)"
+        required: false
+        default: "EcommerceApp"
 timeout-minutes: 60
 permissions:
   contents: read

@@ -2,13 +2,12 @@
 name: Doc Pipeline — 3 Business
 description: Documentation pipeline phase 3 of 6 — transform discoveries into business use cases and processes
 on:
-  workflow_run:
-    workflows:
-      - "Doc Pipeline — 2 Discovery"
-    types:
-      - completed
-    branches:
-      - master
+  workflow_dispatch:
+    inputs:
+      module_name:
+        description: "Module name (default: EcommerceApp)"
+        required: false
+        default: "EcommerceApp"
 timeout-minutes: 60
 permissions:
   contents: read

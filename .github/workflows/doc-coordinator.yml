@@ -1,0 +1,135 @@
+name: Doc Pipeline — Coordinator
+
+on:
+  workflow_dispatch:
+    inputs:
+      module_name:
+        description: "Module name (default: EcommerceApp)"
+        required: false
+        default: "EcommerceApp"
+      start_phase:
+        description: "Phase to start from (1=planning, 2=discovery, 3=business, 4=technical, 5=coordination, 6=verification)"
+        required: false
+        default: "1"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  coordinate:
+    name: Coordinate Documentation Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      REF: ${{ github.ref_name }}
+
+    steps:
+      - name: Phase 1 — Planning
+        if: ${{ inputs.start_phase <= '1' }}
+        run: |
+          echo "▶ Dispatching Phase 1 — Planning"
+          RUN_ID=$(gh workflow run doc-pipeline.lock.yml \
+            --repo "$REPO" \
+            --ref "$REF" \
+            --field module_name="${{ inputs.module_name }}" \
+            --json | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null || \
+            gh workflow run doc-pipeline.lock.yml \
+              --repo "$REPO" \
+              --ref "$REF" \
+              --field module_name="${{ inputs.module_name }}" 2>&1 && \
+            sleep 5 && \
+            gh run list --repo "$REPO" --workflow doc-pipeline.lock.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "  Run ID: $RUN_ID"
+          echo "  Waiting for completion (up to 60 min)..."
+          gh run watch "$RUN_ID" --repo "$REPO" --exit-status
+          echo "✅ Phase 1 complete"
+
+      - name: Phase 2 — Discovery
+        if: ${{ inputs.start_phase <= '2' }}
+        run: |
+          echo "▶ Dispatching Phase 2 — Discovery"
+          gh workflow run doc-phase-2-discovery.lock.yml \
+            --repo "$REPO" \
+            --ref "$REF" \
+            --field module_name="${{ inputs.module_name }}"
+          sleep 5
+          RUN_ID=$(gh run list --repo "$REPO" --workflow doc-phase-2-discovery.lock.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "  Run ID: $RUN_ID"
+          echo "  Waiting for completion (up to 60 min)..."
+          gh run watch "$RUN_ID" --repo "$REPO" --exit-status
+          echo "✅ Phase 2 complete"
+
+      - name: Phase 3 — Business
+        if: ${{ inputs.start_phase <= '3' }}
+        run: |
+          echo "▶ Dispatching Phase 3 — Business"
+          gh workflow run doc-phase-3-business.lock.yml \
+            --repo "$REPO" \
+            --ref "$REF" \
+            --field module_name="${{ inputs.module_name }}"
+          sleep 5
+          RUN_ID=$(gh run list --repo "$REPO" --workflow doc-phase-3-business.lock.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "  Run ID: $RUN_ID"
+          echo "  Waiting for completion (up to 60 min)..."
+          gh run watch "$RUN_ID" --repo "$REPO" --exit-status
+          echo "✅ Phase 3 complete"
+
+      - name: Phase 4 — Technical
+        if: ${{ inputs.start_phase <= '4' }}
+        run: |
+          echo "▶ Dispatching Phase 4 — Technical"
+          gh workflow run doc-phase-4-technical.lock.yml \
+            --repo "$REPO" \
+            --ref "$REF" \
+            --field module_name="${{ inputs.module_name }}"
+          sleep 5
+          RUN_ID=$(gh run list --repo "$REPO" --workflow doc-phase-4-technical.lock.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "  Run ID: $RUN_ID"
+          echo "  Waiting for completion (up to 60 min)..."
+          gh run watch "$RUN_ID" --repo "$REPO" --exit-status
+          echo "✅ Phase 4 complete"
+
+      - name: Phase 5 — Coordination
+        if: ${{ inputs.start_phase <= '5' }}
+        run: |
+          echo "▶ Dispatching Phase 5 — Coordination"
+          gh workflow run doc-phase-5-coordination.lock.yml \
+            --repo "$REPO" \
+            --ref "$REF" \
+            --field module_name="${{ inputs.module_name }}"
+          sleep 5
+          RUN_ID=$(gh run list --repo "$REPO" --workflow doc-phase-5-coordination.lock.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "  Run ID: $RUN_ID"
+          echo "  Waiting for completion (up to 60 min)..."
+          gh run watch "$RUN_ID" --repo "$REPO" --exit-status
+          echo "✅ Phase 5 complete"
+
+      - name: Phase 6 — Verification
+        if: ${{ inputs.start_phase <= '6' }}
+        run: |
+          echo "▶ Dispatching Phase 6 — Verification"
+          gh workflow run doc-phase-6-verification.lock.yml \
+            --repo "$REPO" \
+            --ref "$REF" \
+            --field module_name="${{ inputs.module_name }}"
+          sleep 5
+          RUN_ID=$(gh run list --repo "$REPO" --workflow doc-phase-6-verification.lock.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "  Run ID: $RUN_ID"
+          echo "  Waiting for completion (up to 60 min)..."
+          gh run watch "$RUN_ID" --repo "$REPO" --exit-status
+          echo "✅ Phase 6 complete"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo ""
+          echo "================================================"
+          echo "  Documentation Pipeline — Run Complete"
+          echo "================================================"
+          echo ""
+          gh run list --repo "$REPO" --limit 10 --json displayTitle,conclusion,workflowName,createdAt \
+            --jq '.[] | select(.workflowName | test("Doc Pipeline")) | "\(.workflowName): \(.conclusion)"'
