@@ -20,7 +20,7 @@ tools:
       - default
 safe-outputs:
   create-pull-request:
-    base-branch: main
+    base-branch: master
     draft: true
     allowed-files:
       - docs/**

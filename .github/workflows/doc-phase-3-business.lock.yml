@@ -23,14 +23,14 @@
 #
 # Documentation pipeline phase 3 of 6 — transform discoveries into business use cases and processes
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"15b962d3416c9f0fe9ddbf7e2c87f4f057b604f11d204dd503e993da4c290ddd","compiler_version":"v0.59.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"9161b237a1a2fcc43e93d9200b7c6c482283ce3afbd0d8a9c0509dca67e377bd","compiler_version":"v0.59.0","strict":true}
 
 name: "Doc Pipeline — 3 Business"
 "on":
   workflow_run:
     # zizmor: ignore[dangerous-triggers] - workflow_run trigger is secured with role and fork validation
     branches:
-    - main
+    - master
     types:
     - completed
     workflows:

@@ -23,14 +23,14 @@
 #
 # Documentation pipeline phase 6 of 6 — cross-check all documentation against source code
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"76a8a0bda8207c10b2308b896b99dac6ca5b1a29e238393e8366f849a9490c54","compiler_version":"v0.59.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"f3ed4859a5b11309f060740ddfddd781c01962c3bbf74d0a9893fa3acdae62ba","compiler_version":"v0.59.0","strict":true}
 
 name: "Doc Pipeline — 6 Verification"
 "on":
   workflow_run:
     # zizmor: ignore[dangerous-triggers] - workflow_run trigger is secured with role and fork validation
     branches:
-    - main
+    - master
     types:
     - completed
     workflows:

@@ -23,14 +23,14 @@
 #
 # Documentation pipeline phase 4 of 6 — derive functional and technical requirements from business docs
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"1764a8c2b14a742cafc9b0d54ab4c699dadfcc8fd762fe2f7cbd25d097b39cd6","compiler_version":"v0.59.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"51d260cf5e0d55df40d1d486163519e91f791e59ab11f5e9373e6d8fafb026a3","compiler_version":"v0.59.0","strict":true}
 
 name: "Doc Pipeline — 4 Technical"
 "on":
   workflow_run:
     # zizmor: ignore[dangerous-triggers] - workflow_run trigger is secured with role and fork validation
     branches:
-    - main
+    - master
     types:
     - completed
     workflows:

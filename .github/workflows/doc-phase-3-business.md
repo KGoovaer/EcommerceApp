@@ -8,7 +8,7 @@ on:
     types:
       - completed
     branches:
-      - main
+      - master
 timeout-minutes: 60
 permissions:
   contents: read

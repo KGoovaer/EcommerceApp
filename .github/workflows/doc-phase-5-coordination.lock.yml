@@ -23,14 +23,14 @@
 #
 # Documentation pipeline phase 5 of 6 — build indexes, traceability matrices, and system overview
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"88dd3220dd4c579e9122eb2eda8d27feea850c55bfd0f90fc314be89af82d9c8","compiler_version":"v0.59.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"9493db91887e98ebdff12952f15d51a797922b5435197a2839e7eefd53ccb74f","compiler_version":"v0.59.0","strict":true}
 
 name: "Doc Pipeline — 5 Coordination"
 "on":
   workflow_run:
     # zizmor: ignore[dangerous-triggers] - workflow_run trigger is secured with role and fork validation
     branches:
-    - main
+    - master
     types:
     - completed
     workflows:

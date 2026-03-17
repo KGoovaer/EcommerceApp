@@ -23,14 +23,14 @@
 #
 # Documentation pipeline phase 2 of 6 — Java code analysis, servlet/DAO/entity discovery
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"9f1d38ab1d97ab63b5ac9772a3cc97e0310c3001cd1d30fcd4d75a3a99df0436","compiler_version":"v0.59.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"e4b10fa5938916b3758402cef53338bd35f0058e27e0d114453b77f6776ae482","compiler_version":"v0.59.0","strict":true}
 
 name: "Doc Pipeline — 2 Discovery"
 "on":
   workflow_run:
     # zizmor: ignore[dangerous-triggers] - workflow_run trigger is secured with role and fork validation
     branches:
-    - main
+    - master
     types:
     - completed
     workflows:
