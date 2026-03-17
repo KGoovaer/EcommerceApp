@@ -32,17 +32,17 @@ jobs:
         if: ${{ inputs.start_phase <= '1' }}
         run: |
           echo "▶ Dispatching Phase 1 — Planning"
-          RUN_ID=$(gh workflow run doc-pipeline.lock.yml \
+          RUN_ID=$(gh workflow run doc-phase-1-planning.lock.yml \
             --repo "$REPO" \
             --ref "$REF" \
             --field module_name="${{ inputs.module_name }}" \
             --json | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null || \
-            gh workflow run doc-pipeline.lock.yml \
+            gh workflow run doc-phase-1-planning.lock.yml \
               --repo "$REPO" \
               --ref "$REF" \
               --field module_name="${{ inputs.module_name }}" 2>&1 && \
             sleep 5 && \
-            gh run list --repo "$REPO" --workflow doc-pipeline.lock.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+            gh run list --repo "$REPO" --workflow doc-phase-1-planning.lock.yml --limit 1 --json databaseId --jq '.[0].databaseId')
           echo "  Run ID: $RUN_ID"
           echo "  Waiting for completion (up to 60 min)..."
           gh run watch "$RUN_ID" --repo "$REPO" --exit-status

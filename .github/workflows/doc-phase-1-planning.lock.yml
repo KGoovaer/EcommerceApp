@@ -97,7 +97,7 @@ jobs:
       - name: Check workflow file timestamps
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          GH_AW_WORKFLOW_FILE: "doc-pipeline.lock.yml"
+          GH_AW_WORKFLOW_FILE: "doc-phase-1-planning.lock.yml"
         with:
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
@@ -166,7 +166,7 @@ jobs:
           </system>
           GH_AW_PROMPT_EOF
           cat << 'GH_AW_PROMPT_EOF'
-          {{#runtime-import .github/workflows/doc-pipeline.md}}
+          {{#runtime-import .github/workflows/doc-phase-1-planning.md}}
           GH_AW_PROMPT_EOF
           } > "$GH_AW_PROMPT"
       - name: Interpolate variables and render templates
@@ -969,7 +969,7 @@ jobs:
       issues: write
       pull-requests: write
     concurrency:
-      group: "gh-aw-conclusion-doc-pipeline"
+      group: "gh-aw-conclusion-doc-phase-1-planning"
       cancel-in-progress: false
     outputs:
       noop_message: ${{ steps.noop.outputs.noop_message }}
@@ -1028,7 +1028,7 @@ jobs:
           GH_AW_WORKFLOW_NAME: "Doc Pipeline — 1 Planning"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
-          GH_AW_WORKFLOW_ID: "doc-pipeline"
+          GH_AW_WORKFLOW_ID: "doc-phase-1-planning"
           GH_AW_SECRET_VERIFICATION_RESULT: ${{ needs.activation.outputs.secret_verification_result }}
           GH_AW_CHECKOUT_PR_SUCCESS: ${{ needs.agent.outputs.checkout_pr_success }}
           GH_AW_INFERENCE_ACCESS_ERROR: ${{ needs.agent.outputs.inference_access_error }}
@@ -1088,9 +1088,9 @@ jobs:
       pull-requests: write
     timeout-minutes: 15
     env:
-      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/doc-pipeline"
+      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/doc-phase-1-planning"
       GH_AW_ENGINE_ID: "copilot"
-      GH_AW_WORKFLOW_ID: "doc-pipeline"
+      GH_AW_WORKFLOW_ID: "doc-phase-1-planning"
       GH_AW_WORKFLOW_NAME: "Doc Pipeline — 1 Planning"
     outputs:
       code_push_failure_count: ${{ steps.process_safe_outputs.outputs.code_push_failure_count }}
