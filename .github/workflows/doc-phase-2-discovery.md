@@ -20,7 +20,7 @@ tools:
       - default
 safe-outputs:
   push-to-pull-request-branch:
-    branch: docs/pipeline-EcommerceApp
+    branch: "*"
     allowed-files:
       - docs/**
   dispatch-workflow:
