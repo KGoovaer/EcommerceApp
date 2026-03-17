@@ -13,8 +13,12 @@ public class DBConnect
 		try {
 			
 			Class.forName("com.mysql.cj.jdbc.Driver");
-		//	conn = DriverManager.getConnection("jdbc:sqlite:mydatabase.db");
-			conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/Swapnil/eclipse-workspace/Online Electronic Shopping/mydatabase.db");
+			Class.forName("org.sqlite.JDBC");
+			String dbPath = System.getenv("SQLITE_DB_PATH");
+			if (dbPath == null || dbPath.isEmpty()) {
+				dbPath = "mydatabase.db";
+			}
+			conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
 			
 		}catch (Exception e) {
 			e.printStackTrace();

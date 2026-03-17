@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      SQLITE_DB_PATH: /data/mydatabase.db
+      UPLOAD_PATH: /usr/local/tomcat/webapps/ROOT/
+    volumes:
+      # Bind-mount the existing SQLite database from the project root
+      - ./mydatabase.db:/data/mydatabase.db
+      # Named volume for admin-uploaded product images (persists across restarts)
+      - product_images:/usr/local/tomcat/webapps/ROOT/images
+
+volumes:
+  product_images:

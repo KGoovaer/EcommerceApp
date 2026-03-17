@@ -95,7 +95,8 @@ public class DAO {
 	//
 public int  addproduct(HttpServletRequest request) {
 		
-	String path = "C:/Users/Swapnil/eclipse-workspace/imagetable2/src/main/webapp/";
+	String uploadPath = System.getenv("UPLOAD_PATH");
+	String path = (uploadPath != null && !uploadPath.isEmpty()) ? uploadPath : "";
 	
 	
 	
