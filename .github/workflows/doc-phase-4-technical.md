@@ -23,6 +23,9 @@ safe-outputs:
     branch: docs/pipeline-EcommerceApp
     allowed-files:
       - docs/**
+  dispatch-workflow:
+    workflows: [doc-phase-5-coordination]
+    max: 1
 ---
 
 # Phase 4 — Technical Documentation
@@ -107,3 +110,13 @@ Write `docs/functional/index.md`:
 Update `docs/EcommerceApp-state.json`: mark technical phase `complete` and add all new files to `artifact_inventory`.
 
 All output files will be pushed to branch `docs/pipeline-EcommerceApp`.
+
+## Handoff
+
+After pushing all technical documentation outputs, immediately dispatch the next phase:
+
+```
+dispatch_workflow("doc-phase-5-coordination", inputs: {module_name: "<same module_name input>"})
+```
+
+Pass the same `module_name` value that was provided to this workflow.

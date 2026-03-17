@@ -24,6 +24,9 @@ safe-outputs:
     draft: true
     allowed-files:
       - docs/**
+  dispatch-workflow:
+    workflows: [doc-phase-2-discovery]
+    max: 1
 ---
 
 # Phase 1 — Planning
@@ -72,3 +75,13 @@ Analyse the EcommerceApp repository structure and produce two output files:
 Mark planning phase `complete` in `docs/EcommerceApp-state.json` before finishing.
 
 Both files will be included in the pull request created on branch `docs/pipeline-EcommerceApp`.
+
+## Handoff
+
+After the pull request is created, immediately dispatch the next phase:
+
+```
+dispatch_workflow("doc-phase-2-discovery", inputs: {module_name: "<same module_name input>"})
+```
+
+Pass the same `module_name` value that was provided to this workflow (default: `EcommerceApp`).

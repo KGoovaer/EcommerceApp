@@ -23,6 +23,9 @@ safe-outputs:
     branch: docs/pipeline-EcommerceApp
     allowed-files:
       - docs/**
+  dispatch-workflow:
+    workflows: [doc-phase-3-business]
+    max: 1
 ---
 
 # Phase 2 — Discovery
@@ -99,3 +102,13 @@ List all `.jsp` files in `EcommerceApp/src/main/webapp/`. Group them by the trip
 Update `docs/EcommerceApp-state.json`: mark discovery phase `complete` and add the three output files to `artifact_inventory`.
 
 All output files will be pushed to branch `docs/pipeline-EcommerceApp`.
+
+## Handoff
+
+After pushing all discovery outputs, immediately dispatch the next phase:
+
+```
+dispatch_workflow("doc-phase-3-business", inputs: {module_name: "<same module_name input>"})
+```
+
+Pass the same `module_name` value that was provided to this workflow.

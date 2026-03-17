@@ -23,6 +23,9 @@ safe-outputs:
     branch: docs/pipeline-EcommerceApp
     allowed-files:
       - docs/**
+  dispatch-workflow:
+    workflows: [doc-phase-6-verification]
+    max: 1
 ---
 
 # Phase 5 — Documentation Coordination
@@ -107,3 +110,13 @@ Validate: every ID referenced in any document must appear in this registry. List
 Update `docs/EcommerceApp-state.json`: mark coordination phase `complete` and add all new files to `artifact_inventory`.
 
 All output files will be pushed to branch `docs/pipeline-EcommerceApp`.
+
+## Handoff
+
+After pushing all coordination outputs, immediately dispatch the next phase:
+
+```
+dispatch_workflow("doc-phase-6-verification", inputs: {module_name: "<same module_name input>"})
+```
+
+Pass the same `module_name` value that was provided to this workflow.
