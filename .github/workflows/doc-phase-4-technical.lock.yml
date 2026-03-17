@@ -21,28 +21,35 @@
 #
 # For more information: https://github.github.com/gh-aw/introduction/overview/
 #
-# Documentation pipeline phase 1 of 6 — language detection, state file creation, and documentation plan
+# Documentation pipeline phase 4 of 6 — derive functional and technical requirements from business docs
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"52dcd13c0b1139c0c126113d043c765bef5c721864d5cee207d17c2b0ddd6c6e","compiler_version":"v0.59.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"1764a8c2b14a742cafc9b0d54ab4c699dadfcc8fd762fe2f7cbd25d097b39cd6","compiler_version":"v0.59.0","strict":true}
 
-name: "Doc Pipeline — 1 Planning"
+name: "Doc Pipeline — 4 Technical"
 "on":
-  workflow_dispatch:
-    inputs:
-      module_name:
-        default: EcommerceApp
-        description: "Module name (default: EcommerceApp)"
-        required: false
+  workflow_run:
+    # zizmor: ignore[dangerous-triggers] - workflow_run trigger is secured with role and fork validation
+    branches:
+    - main
+    types:
+    - completed
+    workflows:
+    - Doc Pipeline — 3 Business
 
 permissions: {}
 
 concurrency:
   group: "gh-aw-${{ github.workflow }}"
 
-run-name: "Doc Pipeline — 1 Planning"
+run-name: "Doc Pipeline — 4 Technical"
 
 jobs:
   activation:
+    needs: pre_activation
+    # zizmor: ignore[dangerous-triggers] - workflow_run trigger is secured with role and fork validation
+    if: >
+      (needs.pre_activation.outputs.activated == 'true') && ((github.event_name != 'workflow_run') || ((github.event.workflow_run.repository.id == github.repository_id) &&
+      (!(github.event.workflow_run.repository.fork))))
     runs-on: ubuntu-slim
     permissions:
       contents: read
@@ -65,7 +72,7 @@ jobs:
           GH_AW_INFO_VERSION: ""
           GH_AW_INFO_AGENT_VERSION: "latest"
           GH_AW_INFO_CLI_VERSION: "v0.59.0"
-          GH_AW_INFO_WORKFLOW_NAME: "Doc Pipeline — 1 Planning"
+          GH_AW_INFO_WORKFLOW_NAME: "Doc Pipeline — 4 Technical"
           GH_AW_INFO_EXPERIMENTAL: "false"
           GH_AW_INFO_SUPPORTS_TOOLS_ALLOWLIST: "true"
           GH_AW_INFO_STAGED: "false"
@@ -97,7 +104,7 @@ jobs:
       - name: Check workflow file timestamps
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          GH_AW_WORKFLOW_FILE: "doc-pipeline.lock.yml"
+          GH_AW_WORKFLOW_FILE: "doc-phase-4-technical.lock.yml"
         with:
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
@@ -128,9 +135,9 @@ jobs:
           cat "/opt/gh-aw/prompts/safe_outputs_prompt.md"
           cat << 'GH_AW_PROMPT_EOF'
           <safe-output-tools>
-          Tools: create_pull_request, missing_tool, missing_data, noop
+          Tools: push_to_pull_request_branch, missing_tool, missing_data, noop
           GH_AW_PROMPT_EOF
-          cat "/opt/gh-aw/prompts/safe_outputs_create_pull_request.md"
+          cat "/opt/gh-aw/prompts/safe_outputs_push_to_pr_branch.md"
           cat << 'GH_AW_PROMPT_EOF'
           </safe-output-tools>
           <github-context>
@@ -166,7 +173,7 @@ jobs:
           </system>
           GH_AW_PROMPT_EOF
           cat << 'GH_AW_PROMPT_EOF'
-          {{#runtime-import .github/workflows/doc-pipeline.md}}
+          {{#runtime-import .github/workflows/doc-phase-4-technical.md}}
           GH_AW_PROMPT_EOF
           } > "$GH_AW_PROMPT"
       - name: Interpolate variables and render templates
@@ -191,6 +198,7 @@ jobs:
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
+          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED: ${{ needs.pre_activation.outputs.activated }}
         with:
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
@@ -209,7 +217,8 @@ jobs:
                 GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER: process.env.GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER,
                 GH_AW_GITHUB_REPOSITORY: process.env.GH_AW_GITHUB_REPOSITORY,
                 GH_AW_GITHUB_RUN_ID: process.env.GH_AW_GITHUB_RUN_ID,
-                GH_AW_GITHUB_WORKSPACE: process.env.GH_AW_GITHUB_WORKSPACE
+                GH_AW_GITHUB_WORKSPACE: process.env.GH_AW_GITHUB_WORKSPACE,
+                GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED
               }
             });
       - name: Validate prompt placeholders
@@ -237,6 +246,8 @@ jobs:
       contents: read
       issues: read
       pull-requests: read
+    concurrency:
+      group: "gh-aw-copilot-${{ github.workflow }}"
     env:
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
       GH_AW_ASSETS_ALLOWED_EXTS: ""
@@ -246,7 +257,7 @@ jobs:
       GH_AW_SAFE_OUTPUTS: /opt/gh-aw/safeoutputs/outputs.jsonl
       GH_AW_SAFE_OUTPUTS_CONFIG_PATH: /opt/gh-aw/safeoutputs/config.json
       GH_AW_SAFE_OUTPUTS_TOOLS_PATH: /opt/gh-aw/safeoutputs/tools.json
-      GH_AW_WORKFLOW_ID_SANITIZED: docpipeline
+      GH_AW_WORKFLOW_ID_SANITIZED: docphase4technical
     outputs:
       checkout_pr_success: ${{ steps.checkout-pr.outputs.checkout_pr_success || 'true' }}
       detection_conclusion: ${{ steps.detection_conclusion.outputs.conclusion }}
@@ -317,60 +328,47 @@ jobs:
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
           cat > /opt/gh-aw/safeoutputs/config.json << 'GH_AW_SAFE_OUTPUTS_CONFIG_EOF'
-          {"create_pull_request":{"base_branch":"main","draft":true,"max":1},"missing_data":{},"missing_tool":{},"noop":{"max":1}}
+          {"missing_data":{},"missing_tool":{},"noop":{"max":1},"push_to_pull_request_branch":{"max":1}}
           GH_AW_SAFE_OUTPUTS_CONFIG_EOF
       - name: Write Safe Outputs Tools
         run: |
           cat > /opt/gh-aw/safeoutputs/tools.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_EOF'
           [
             {
-              "description": "Create a new GitHub pull request to propose code changes. Use this after making file edits to submit them for review and merging. The PR will be created from the current branch with your committed changes. For code review comments on an existing PR, use create_pull_request_review_comment instead. CONSTRAINTS: Maximum 1 pull request(s) can be created. PRs will be created as drafts.",
+              "description": "Push committed changes to a pull request's branch. Use this to add follow-up commits to an existing PR, such as addressing review feedback or fixing issues. Changes must be committed locally before calling this tool.",
               "inputSchema": {
                 "additionalProperties": false,
                 "properties": {
-                  "body": {
-                    "description": "Detailed PR description in Markdown. Include what changes were made, why, testing notes, and any breaking changes. Do NOT repeat the title as a heading.",
-                    "type": "string"
-                  },
                   "branch": {
-                    "description": "Source branch name containing the changes. If omitted, uses the current working branch.",
+                    "description": "Branch name to push changes from. If omitted, uses the current working branch. Only specify if you need to push from a different branch.",
                     "type": "string"
-                  },
-                  "draft": {
-                    "description": "Whether to create the PR as a draft. Draft PRs cannot be merged until marked as ready for review. Use mark_pull_request_as_ready_for_review to convert a draft PR. Default: true.",
-                    "type": "boolean"
                   },
                   "integrity": {
                     "description": "Trustworthiness level of the message source (e.g., \"low\", \"medium\", \"high\").",
                     "type": "string"
                   },
-                  "labels": {
-                    "description": "Labels to categorize the PR (e.g., 'enhancement', 'bugfix'). Labels must exist in the repository.",
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  },
-                  "repo": {
-                    "description": "Target repository in 'owner/repo' format. For multi-repo workflows where the target repo differs from the workflow repo, this must match a repo in the allowed-repos list or the configured target-repo. If omitted, defaults to the configured target-repo (from safe-outputs config), NOT the workflow repository. In most cases, you should omit this parameter and let the system use the configured default.",
+                  "message": {
+                    "description": "Commit message describing the changes. Follow repository commit message conventions (e.g., conventional commits).",
                     "type": "string"
+                  },
+                  "pull_request_number": {
+                    "description": "Pull request number to push changes to. This is the numeric ID from the GitHub URL (e.g., 654 in github.com/owner/repo/pull/654). Required when the workflow target is '*' (any PR).",
+                    "type": [
+                      "number",
+                      "string"
+                    ]
                   },
                   "secrecy": {
                     "description": "Confidentiality level of the message content (e.g., \"public\", \"internal\", \"private\").",
                     "type": "string"
-                  },
-                  "title": {
-                    "description": "Concise PR title describing the changes. Follow repository conventions (e.g., conventional commits). The title appears as the main heading.",
-                    "type": "string"
                   }
                 },
                 "required": [
-                  "title",
-                  "body"
+                  "message"
                 ],
                 "type": "object"
               },
-              "name": "create_pull_request"
+              "name": "push_to_pull_request_branch"
             },
             {
               "description": "Report that a tool or capability needed to complete the task is not available, or share any information you deem important about missing functionality or limitations. Use this when you cannot accomplish what was requested because the required functionality is missing or access is restricted.",
@@ -469,42 +467,6 @@ jobs:
           GH_AW_SAFE_OUTPUTS_TOOLS_EOF
           cat > /opt/gh-aw/safeoutputs/validation.json << 'GH_AW_SAFE_OUTPUTS_VALIDATION_EOF'
           {
-            "create_pull_request": {
-              "defaultMax": 1,
-              "fields": {
-                "body": {
-                  "required": true,
-                  "type": "string",
-                  "sanitize": true,
-                  "maxLength": 65000
-                },
-                "branch": {
-                  "required": true,
-                  "type": "string",
-                  "sanitize": true,
-                  "maxLength": 256
-                },
-                "draft": {
-                  "type": "boolean"
-                },
-                "labels": {
-                  "type": "array",
-                  "itemType": "string",
-                  "itemSanitize": true,
-                  "itemMaxLength": 128
-                },
-                "repo": {
-                  "type": "string",
-                  "maxLength": 256
-                },
-                "title": {
-                  "required": true,
-                  "type": "string",
-                  "sanitize": true,
-                  "maxLength": 128
-                }
-              }
-            },
             "missing_data": {
               "defaultMax": 20,
               "fields": {
@@ -559,6 +521,26 @@ jobs:
                   "type": "string",
                   "sanitize": true,
                   "maxLength": 65000
+                }
+              }
+            },
+            "push_to_pull_request_branch": {
+              "defaultMax": 1,
+              "fields": {
+                "branch": {
+                  "required": true,
+                  "type": "string",
+                  "sanitize": true,
+                  "maxLength": 256
+                },
+                "message": {
+                  "required": true,
+                  "type": "string",
+                  "sanitize": true,
+                  "maxLength": 65000
+                },
+                "pull_request_number": {
+                  "issueOrPRNumber": true
                 }
               }
             }
@@ -868,8 +850,8 @@ jobs:
         if: always() && steps.detection_guard.outputs.run_detection == 'true'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          WORKFLOW_NAME: "Doc Pipeline — 1 Planning"
-          WORKFLOW_DESCRIPTION: "Documentation pipeline phase 1 of 6 — language detection, state file creation, and documentation plan"
+          WORKFLOW_NAME: "Doc Pipeline — 4 Technical"
+          WORKFLOW_DESCRIPTION: "Documentation pipeline phase 4 of 6 — derive functional and technical requirements from business docs"
           HAS_PATCH: ${{ steps.collect_output.outputs.has_patch }}
         with:
           script: |
@@ -966,10 +948,9 @@ jobs:
     runs-on: ubuntu-slim
     permissions:
       contents: write
-      issues: write
       pull-requests: write
     concurrency:
-      group: "gh-aw-conclusion-doc-pipeline"
+      group: "gh-aw-conclusion-doc-phase-4-technical"
       cancel-in-progress: false
     outputs:
       noop_message: ${{ steps.noop.outputs.noop_message }}
@@ -999,7 +980,7 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
           GH_AW_NOOP_MAX: "1"
-          GH_AW_WORKFLOW_NAME: "Doc Pipeline — 1 Planning"
+          GH_AW_WORKFLOW_NAME: "Doc Pipeline — 4 Technical"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1012,7 +993,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Doc Pipeline — 1 Planning"
+          GH_AW_WORKFLOW_NAME: "Doc Pipeline — 4 Technical"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1025,10 +1006,10 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Doc Pipeline — 1 Planning"
+          GH_AW_WORKFLOW_NAME: "Doc Pipeline — 4 Technical"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
-          GH_AW_WORKFLOW_ID: "doc-pipeline"
+          GH_AW_WORKFLOW_ID: "doc-phase-4-technical"
           GH_AW_SECRET_VERIFICATION_RESULT: ${{ needs.activation.outputs.secret_verification_result }}
           GH_AW_CHECKOUT_PR_SUCCESS: ${{ needs.agent.outputs.checkout_pr_success }}
           GH_AW_INFERENCE_ACCESS_ERROR: ${{ needs.agent.outputs.inference_access_error }}
@@ -1049,7 +1030,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Doc Pipeline — 1 Planning"
+          GH_AW_WORKFLOW_NAME: "Doc Pipeline — 4 Technical"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
           GH_AW_NOOP_MESSAGE: ${{ steps.noop.outputs.noop_message }}
@@ -1061,19 +1042,28 @@ jobs:
             setupGlobals(core, github, context, exec, io);
             const { main } = require('/opt/gh-aw/actions/handle_noop_message.cjs');
             await main();
-      - name: Handle Create Pull Request Error
-        id: handle_create_pr_error
+
+  pre_activation:
+    runs-on: ubuntu-slim
+    outputs:
+      activated: ${{ steps.check_membership.outputs.is_team_member == 'true' }}
+      matched_command: ''
+    steps:
+      - name: Setup Scripts
+        uses: github/gh-aw-actions/setup@066087f607f52664010289ddd52198f33044c38a # v0.59.0
+        with:
+          destination: /opt/gh-aw/actions
+      - name: Check team membership for workflow
+        id: check_membership
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Doc Pipeline — 1 Planning"
-          GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GH_AW_REQUIRED_ROLES: admin,maintainer,write
         with:
-          github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
             setupGlobals(core, github, context, exec, io);
-            const { main } = require('/opt/gh-aw/actions/handle_create_pr_error.cjs');
+            const { main } = require('/opt/gh-aw/actions/check_membership.cjs');
             await main();
 
   safe_outputs:
@@ -1084,23 +1074,22 @@ jobs:
     runs-on: ubuntu-slim
     permissions:
       contents: write
-      issues: write
       pull-requests: write
     timeout-minutes: 15
     env:
-      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/doc-pipeline"
+      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/doc-phase-4-technical"
       GH_AW_ENGINE_ID: "copilot"
-      GH_AW_WORKFLOW_ID: "doc-pipeline"
-      GH_AW_WORKFLOW_NAME: "Doc Pipeline — 1 Planning"
+      GH_AW_WORKFLOW_ID: "doc-phase-4-technical"
+      GH_AW_WORKFLOW_NAME: "Doc Pipeline — 4 Technical"
     outputs:
       code_push_failure_count: ${{ steps.process_safe_outputs.outputs.code_push_failure_count }}
       code_push_failure_errors: ${{ steps.process_safe_outputs.outputs.code_push_failure_errors }}
       create_discussion_error_count: ${{ steps.process_safe_outputs.outputs.create_discussion_error_count }}
       create_discussion_errors: ${{ steps.process_safe_outputs.outputs.create_discussion_errors }}
-      created_pr_number: ${{ steps.process_safe_outputs.outputs.created_pr_number }}
-      created_pr_url: ${{ steps.process_safe_outputs.outputs.created_pr_url }}
       process_safe_outputs_processed_count: ${{ steps.process_safe_outputs.outputs.processed_count }}
       process_safe_outputs_temporary_id_map: ${{ steps.process_safe_outputs.outputs.temporary_id_map }}
+      push_commit_sha: ${{ steps.process_safe_outputs.outputs.push_commit_sha }}
+      push_commit_url: ${{ steps.process_safe_outputs.outputs.push_commit_url }}
     steps:
       - name: Setup Scripts
         uses: github/gh-aw-actions/setup@066087f607f52664010289ddd52198f33044c38a # v0.59.0
@@ -1126,15 +1115,15 @@ jobs:
           name: agent
           path: /tmp/gh-aw/
       - name: Checkout repository
-        if: ((!cancelled()) && (needs.agent.result != 'skipped')) && (contains(needs.agent.outputs.output_types, 'create_pull_request'))
+        if: ((!cancelled()) && (needs.agent.result != 'skipped')) && (contains(needs.agent.outputs.output_types, 'push_to_pull_request_branch'))
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: main
+          ref: ${{ github.base_ref || github.event.pull_request.base.ref || github.ref_name || github.event.repository.default_branch }}
           token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           persist-credentials: false
           fetch-depth: 1
       - name: Configure Git credentials
-        if: ((!cancelled()) && (needs.agent.result != 'skipped')) && (contains(needs.agent.outputs.output_types, 'create_pull_request'))
+        if: ((!cancelled()) && (needs.agent.result != 'skipped')) && (contains(needs.agent.outputs.output_types, 'push_to_pull_request_branch'))
         env:
           REPO_NAME: ${{ github.repository }}
           SERVER_URL: ${{ github.server_url }}
@@ -1155,7 +1144,7 @@ jobs:
           GH_AW_ALLOWED_DOMAINS: "api.business.githubcopilot.com,api.enterprise.githubcopilot.com,api.github.com,api.githubcopilot.com,api.individual.githubcopilot.com,api.snapcraft.io,archive.ubuntu.com,azure.archive.ubuntu.com,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,github.com,host.docker.internal,json-schema.org,json.schemastore.org,keyserver.ubuntu.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,packagecloud.io,packages.cloud.google.com,packages.microsoft.com,ppa.launchpad.net,raw.githubusercontent.com,registry.npmjs.org,s.symcb.com,s.symcd.com,security.ubuntu.com,telemetry.enterprise.githubcopilot.com,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com"
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_API_URL: ${{ github.api_url }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_pull_request\":{\"allowed_files\":[\"docs/**\"],\"base_branch\":\"main\",\"draft\":true,\"max\":1,\"max_patch_size\":1024,\"protected_files\":[\"package.json\",\"bun.lockb\",\"bunfig.toml\",\"deno.json\",\"deno.jsonc\",\"deno.lock\",\"global.json\",\"NuGet.Config\",\"Directory.Packages.props\",\"mix.exs\",\"mix.lock\",\"go.mod\",\"go.sum\",\"stack.yaml\",\"stack.yaml.lock\",\"pom.xml\",\"build.gradle\",\"build.gradle.kts\",\"settings.gradle\",\"settings.gradle.kts\",\"gradle.properties\",\"package-lock.json\",\"yarn.lock\",\"pnpm-lock.yaml\",\"npm-shrinkwrap.json\",\"requirements.txt\",\"Pipfile\",\"Pipfile.lock\",\"pyproject.toml\",\"setup.py\",\"setup.cfg\",\"Gemfile\",\"Gemfile.lock\",\"uv.lock\",\"AGENTS.md\"],\"protected_path_prefixes\":[\".github/\",\".agents/\"]},\"missing_data\":{},\"missing_tool\":{}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"missing_data\":{},\"missing_tool\":{},\"push_to_pull_request_branch\":{\"allowed_files\":[\"docs/**\"],\"if_no_changes\":\"warn\",\"max_patch_size\":1024,\"protected_files\":[\"package.json\",\"bun.lockb\",\"bunfig.toml\",\"deno.json\",\"deno.jsonc\",\"deno.lock\",\"global.json\",\"NuGet.Config\",\"Directory.Packages.props\",\"mix.exs\",\"mix.lock\",\"go.mod\",\"go.sum\",\"stack.yaml\",\"stack.yaml.lock\",\"pom.xml\",\"build.gradle\",\"build.gradle.kts\",\"settings.gradle\",\"settings.gradle.kts\",\"gradle.properties\",\"package-lock.json\",\"yarn.lock\",\"pnpm-lock.yaml\",\"npm-shrinkwrap.json\",\"requirements.txt\",\"Pipfile\",\"Pipfile.lock\",\"pyproject.toml\",\"setup.py\",\"setup.cfg\",\"Gemfile\",\"Gemfile.lock\",\"uv.lock\",\"AGENTS.md\"],\"protected_path_prefixes\":[\".github/\",\".agents/\"]}}"
           GH_AW_CI_TRIGGER_TOKEN: ${{ secrets.GH_AW_CI_TRIGGER_TOKEN }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
