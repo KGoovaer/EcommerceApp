@@ -23,7 +23,7 @@
 #
 # Documentation pipeline phase 6 of 6 — cross-check all documentation against source code
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"6638b769e390e5700c2b4c7f303d392c40ae67f6a2e9a73a668eed8e091da5d1","compiler_version":"v0.59.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"21d23df631f17a26ff6c850dea347f0d3fcfb1979cb9d00dd53029a553d3e798","compiler_version":"v0.59.0","strict":true}
 
 name: "Doc Pipeline — 6 Verification"
 "on":

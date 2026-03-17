@@ -19,9 +19,8 @@ tools:
     toolsets:
       - default
 safe-outputs:
-  create-pull-request:
-    base-branch: master
-    draft: true
+  push-to-pull-request-branch:
+    branch: docs/pipeline-EcommerceApp
     allowed-files:
       - docs/**
   dispatch-workflow:
@@ -32,6 +31,25 @@ safe-outputs:
 # Phase 1 — Planning
 
 You are the **Planning Agent**. This is the first of six sequential documentation phases for the EcommerceApp codebase.
+
+## Critical first step — create the pipeline branch and PR
+
+Before doing anything else, run these commands to create the shared pipeline branch and open a draft PR that all subsequent phases will commit to:
+
+```bash
+git fetch origin
+git checkout -b docs/pipeline-EcommerceApp origin/master 2>/dev/null \
+  || git checkout docs/pipeline-EcommerceApp
+git push -u origin docs/pipeline-EcommerceApp 2>/dev/null || true
+gh pr create \
+  --base master \
+  --head docs/pipeline-EcommerceApp \
+  --title "docs: EcommerceApp documentation pipeline" \
+  --body "Automated multi-phase documentation pipeline for EcommerceApp." \
+  --draft 2>/dev/null || true
+```
+
+If the branch or PR already exists the `2>/dev/null || true` guards prevent failures — continue normally.
 
 ## Required reading
 

@@ -23,7 +23,7 @@
 #
 # Documentation pipeline phase 3 of 6 — transform discoveries into business use cases and processes
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"e0a7cac9f4ab973b10eebc79f866a74b76d89bd23d35bfd1299ca88c6f5aa92e","compiler_version":"v0.59.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"4fddd4f4933e573f4f6e00fd73afca97271d036f6ca855c8694713d112b892c2","compiler_version":"v0.59.0","strict":true}
 
 name: "Doc Pipeline — 3 Business"
 "on":

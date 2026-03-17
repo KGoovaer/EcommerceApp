@@ -23,7 +23,7 @@
 #
 # Documentation pipeline phase 4 of 6 — derive functional and technical requirements from business docs
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"0496941935a1f66809caaaa72f81d9f239871b0c653013a591eebe92a24804a4","compiler_version":"v0.59.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"9e1355bcad60e74682effad4d77df633fea06a7c0334aad67770e679e8244bb9","compiler_version":"v0.59.0","strict":true}
 
 name: "Doc Pipeline — 4 Technical"
 "on":

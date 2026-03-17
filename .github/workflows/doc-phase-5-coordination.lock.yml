@@ -23,7 +23,7 @@
 #
 # Documentation pipeline phase 5 of 6 — build indexes, traceability matrices, and system overview
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"bf3643e435a2ef11cb7014d75e97d3b964134cddb988f5eb5f4ff8c5ffb401a6","compiler_version":"v0.59.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"b19cbb4261fee838d3520c231f484233ab7da93a5d1bcdb4f3b652c94add92ef","compiler_version":"v0.59.0","strict":true}
 
 name: "Doc Pipeline — 5 Coordination"
 "on":

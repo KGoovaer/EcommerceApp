@@ -23,7 +23,7 @@
 #
 # Documentation pipeline phase 2 of 6 — Java code analysis, servlet/DAO/entity discovery
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"058b201a9eff0a77d242b857eef97ad435078ac8613f7bf324423ae3aff63b79","compiler_version":"v0.59.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"e8e8de443b866edb9244a03a43e6624e27d74baa927f9b026c57b8b40216eea8","compiler_version":"v0.59.0","strict":true}
 
 name: "Doc Pipeline — 2 Discovery"
 "on":
