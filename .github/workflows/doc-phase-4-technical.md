@@ -2,6 +2,10 @@
 name: Doc Pipeline — 4 Technical
 description: Documentation pipeline phase 4 of 6 — derive functional and technical requirements from business docs
 on:
+  workflow_run:
+    workflows: ["Doc Pipeline — 3 Business"]
+    types: [completed]
+    branches: [master]
   pull_request:
     types: [opened, synchronize]
     branches: [master]

@@ -2,6 +2,10 @@
 name: Doc Pipeline — 3 Business
 description: Documentation pipeline phase 3 of 6 — transform discoveries into business use cases and processes
 on:
+  workflow_run:
+    workflows: ["Doc Pipeline — 2 Discovery"]
+    types: [completed]
+    branches: [master]
   pull_request:
     types: [opened, synchronize]
     branches: [master]

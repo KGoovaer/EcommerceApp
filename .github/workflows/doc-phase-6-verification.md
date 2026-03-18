@@ -2,6 +2,10 @@
 name: Doc Pipeline — 6 Verification
 description: Documentation pipeline phase 6 of 6 — cross-check all documentation against source code
 on:
+  workflow_run:
+    workflows: ["Doc Pipeline — 5 Coordination"]
+    types: [completed]
+    branches: [master]
   pull_request:
     types: [opened, synchronize]
     branches: [master]

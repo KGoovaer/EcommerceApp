@@ -2,6 +2,10 @@
 name: Doc Pipeline — 2 Discovery
 description: Documentation pipeline phase 2 of 6 — Java code analysis, servlet/DAO/entity discovery
 on:
+  workflow_run:
+    workflows: ["Doc Pipeline — 1 Planning"]
+    types: [completed]
+    branches: [master]
   pull_request:
     types: [opened, synchronize]
     branches: [master]
