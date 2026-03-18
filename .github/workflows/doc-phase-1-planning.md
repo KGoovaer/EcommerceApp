@@ -24,6 +24,9 @@ safe-outputs:
     draft: true
     allowed-files:
       - docs/**
+  dispatch-workflow:
+    workflows: [doc-phase-2-discovery]
+    max: 1
 ---
 
 # Phase 1 — Planning
@@ -75,4 +78,8 @@ Both files will be included in the documentation pipeline pull request. When cre
 
 ## Handoff
 
-Once you have pushed the two output files and the pull request is created, the pipeline continues automatically — phase 2 (Discovery) is triggered by the `pull_request: opened` event on the new PR. No further action is needed.
+Once you have pushed the two output files and the pull request is created, immediately also dispatch the next phase:
+
+```
+dispatch_workflow("doc-phase-2-discovery", inputs: {module_name: "EcommerceApp"})
+```

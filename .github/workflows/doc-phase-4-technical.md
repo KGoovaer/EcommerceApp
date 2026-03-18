@@ -2,15 +2,6 @@
 name: Doc Pipeline — 4 Technical
 description: Documentation pipeline phase 4 of 6 — derive functional and technical requirements from business docs
 on:
-  workflow_run:
-    workflows: ["Doc Pipeline — 3 Business"]
-    types: [completed]
-    branches: [master]
-  pull_request:
-    types: [opened, synchronize]
-    branches: [master]
-    paths:
-      - docs/EcommerceApp-state.json
   workflow_dispatch:
     inputs:
       module_name:
@@ -32,6 +23,9 @@ safe-outputs:
     branch: "*"
     allowed-files:
       - docs/**
+  dispatch-workflow:
+    workflows: [doc-phase-5-coordination]
+    max: 1
 ---
 
 # Phase 4 — Technical Documentation
@@ -40,21 +34,22 @@ You are the **Technical Documenter Agent**. This is phase 4 of 6 in the document
 
 ## Guard check
 
-First, run:
+Run this and read the output carefully — you will need `PR_NUMBER` later:
 
 ```bash
-if [ -n "${GITHUB_HEAD_REF:-}" ]; then
-  BRANCH="$GITHUB_HEAD_REF"
-else
-  BRANCH=$(gh pr list --search "docs: EcommerceApp documentation pipeline in:title" --state open --json headRefName --jq '.[0].headRefName' 2>/dev/null || echo "")
-fi
-echo "Syncing docs from branch: ${BRANCH}"
-[ -n "$BRANCH" ] && git fetch origin "$BRANCH" && git checkout FETCH_HEAD -- docs/ || echo "Warning: could not sync docs"
+PR_JSON=$(gh pr list --search "docs: EcommerceApp documentation pipeline in:title" --state open --json number,headRefName --jq '.[0]' 2>/dev/null || echo '{}')
+PR_NUMBER=$(echo "$PR_JSON" | grep -o '"number":[0-9]*' | grep -o '[0-9]*')
+BRANCH=$(echo "$PR_JSON" | grep -o '"headRefName":"[^"]*"' | cut -d'"' -f4)
+echo "PR_NUMBER=${PR_NUMBER}"
+echo "BRANCH=${BRANCH}"
+[ -n "$BRANCH" ] && git fetch origin "$BRANCH" && git checkout FETCH_HEAD -- docs/ 2>/dev/null || true
 ```
 
 Read `docs/EcommerceApp-state.json`. Abort if:
 - Business phase is not marked `complete` → print "Phase 3 (business) is not complete — aborting." and stop.
 - Technical phase is already `complete` or `in-progress` → print "Phase 4 (technical) already done or running — aborting." and stop.
+
+**Important**: When calling `push_to_pull_request_branch`, always pass `pull_request_number: <PR_NUMBER>` using the number printed above.
 
 ## Required reading
 
@@ -129,4 +124,8 @@ All output files will be pushed to the documentation pipeline PR.
 
 ## Handoff
 
-Once you have pushed all technical documentation outputs to the PR, the pipeline continues automatically — phase 5 (Coordination) is triggered by the `pull_request: synchronize` event. No further action is needed.
+After pushing, immediately dispatch the next phase:
+
+```
+dispatch_workflow("doc-phase-5-coordination", inputs: {module_name: "EcommerceApp"})
+```
