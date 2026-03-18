@@ -2,6 +2,11 @@
 name: Doc Pipeline — 3 Business
 description: Documentation pipeline phase 3 of 6 — transform discoveries into business use cases and processes
 on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [master]
+    paths:
+      - docs/EcommerceApp-state.json
   workflow_dispatch:
     inputs:
       module_name:
@@ -37,15 +42,18 @@ You are the **Business Documenter Agent**. This is phase 3 of 6 in the documenta
 First, run:
 
 ```bash
-BRANCH=$(gh pr list --search "docs: EcommerceApp documentation pipeline in:title" --state open --json headRefName --jq '.[0].headRefName' 2>/dev/null)
-PR_NUM=$(gh pr list --search "docs: EcommerceApp documentation pipeline in:title" --state open --json number --jq '.[0].number' 2>/dev/null)
-echo "Pipeline PR: #${PR_NUM} on branch ${BRANCH}"
-[ -n "$BRANCH" ] && git fetch origin "$BRANCH" && git checkout FETCH_HEAD -- docs/ || echo "Warning: could not fetch docs from branch ${BRANCH}"
+if [ -n "${GITHUB_HEAD_REF:-}" ]; then
+  BRANCH="$GITHUB_HEAD_REF"
+else
+  BRANCH=$(gh pr list --search "docs: EcommerceApp documentation pipeline in:title" --state open --json headRefName --jq '.[0].headRefName' 2>/dev/null || echo "")
+fi
+echo "Syncing docs from branch: ${BRANCH}"
+[ -n "$BRANCH" ] && git fetch origin "$BRANCH" && git checkout FETCH_HEAD -- docs/ || echo "Warning: could not sync docs"
 ```
 
-Note the PR number from the output above — you will need to pass it as `pull_request_number` when using the push tool later.
-
-Read `docs/EcommerceApp-state.json`. If discovery phase is not marked `complete`, print "Phase 2 (discovery) is not complete — aborting." and stop immediately.
+Read `docs/EcommerceApp-state.json`. Abort if:
+- Discovery phase is not marked `complete` → print "Phase 2 (discovery) is not complete — aborting." and stop.
+- Business phase is already `complete` or `in-progress` → print "Phase 3 (business) already done or running — aborting." and stop.
 
 ## Required reading
 
@@ -104,7 +112,7 @@ Write `docs/business/index.md`:
 
 Update `docs/EcommerceApp-state.json`: mark business phase `complete` and add all new files to `artifact_inventory`.
 
-All output files will be pushed to the documentation pipeline PR. Pass `pull_request_number: <PR_NUM>` (the number from the guard check) when using the push tool.
+All output files will be pushed to the documentation pipeline PR.
 
 ## Handoff
 

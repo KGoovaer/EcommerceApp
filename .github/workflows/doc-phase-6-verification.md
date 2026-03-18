@@ -2,6 +2,11 @@
 name: Doc Pipeline — 6 Verification
 description: Documentation pipeline phase 6 of 6 — cross-check all documentation against source code
 on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [master]
+    paths:
+      - docs/EcommerceApp-state.json
   workflow_dispatch:
     inputs:
       module_name:
@@ -37,15 +42,18 @@ You are the **Verification Agent**. This is the final phase (6 of 6) of the docu
 First, run:
 
 ```bash
-BRANCH=$(gh pr list --search "docs: EcommerceApp documentation pipeline in:title" --state open --json headRefName --jq '.[0].headRefName' 2>/dev/null)
-PR_NUM=$(gh pr list --search "docs: EcommerceApp documentation pipeline in:title" --state open --json number --jq '.[0].number' 2>/dev/null)
-echo "Pipeline PR: #${PR_NUM} on branch ${BRANCH}"
-[ -n "$BRANCH" ] && git fetch origin "$BRANCH" && git checkout FETCH_HEAD -- docs/ || echo "Warning: could not fetch docs from branch ${BRANCH}"
+if [ -n "${GITHUB_HEAD_REF:-}" ]; then
+  BRANCH="$GITHUB_HEAD_REF"
+else
+  BRANCH=$(gh pr list --search "docs: EcommerceApp documentation pipeline in:title" --state open --json headRefName --jq '.[0].headRefName' 2>/dev/null || echo "")
+fi
+echo "Syncing docs from branch: ${BRANCH}"
+[ -n "$BRANCH" ] && git fetch origin "$BRANCH" && git checkout FETCH_HEAD -- docs/ || echo "Warning: could not sync docs"
 ```
 
-Note the PR number from the output above — you will need to pass it as `pull_request_number` when using the push tool later.
-
-Read `docs/EcommerceApp-state.json`. If coordination phase is not marked `complete`, print "Phase 5 (coordination) is not complete — aborting." and stop immediately.
+Read `docs/EcommerceApp-state.json`. Abort if:
+- Coordination phase is not marked `complete` → print "Phase 5 (coordination) is not complete — aborting." and stop.
+- Verification phase is already `complete` or `in-progress` → print "Phase 6 (verification) already done or running — aborting." and stop.
 
 ## Required reading
 
@@ -113,7 +121,7 @@ Print a final summary:
 - Number of gaps found (from gap-report)
 - Overall pipeline status: COMPLETE
 
-All output files will be pushed to the documentation pipeline PR. Pass `pull_request_number: <PR_NUM>` (the number from the guard check) when using the push tool.
+All output files will be pushed to the documentation pipeline PR.
 
 ## Handoff
 
