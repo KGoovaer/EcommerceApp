@@ -28,9 +28,6 @@ safe-outputs:
     branch: "*"
     allowed-files:
       - docs/**
-  dispatch-workflow:
-    workflows: [doc-phase-2-discovery]
-    max: 1
 ---
 
 # Phase 6 — Verification
@@ -128,9 +125,6 @@ All output files will be pushed to the documentation pipeline PR.
 After pushing verification outputs, evaluate the gap report:
 
 - **If the gap report contains Critical or High severity gaps**: dispatch `doc-phase-2-discovery` to run targeted remediation. Pass `module_name` as usual. The discovery agent will re-run on the flows identified in the gap report.
-- **If no Critical or High gaps are found**: do NOT dispatch. The pipeline is complete. Print a final summary: total artifacts, gap count, severity breakdown, and overall status `COMPLETE`.
+- **If no Critical or High gaps are found**: the pipeline is complete. Print a final summary: total artifacts, gap count, severity breakdown, and overall status `COMPLETE`.
 
-```
-# Only if Critical/High gaps found:
-dispatch_workflow("doc-phase-2-discovery", inputs: {module_name: "<same module_name input>"})
-```
+- **If Critical or High gaps are found**: document them in the gap report only. Do not re-trigger phases — a human should review and re-run the pipeline manually.

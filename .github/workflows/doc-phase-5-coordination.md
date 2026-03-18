@@ -28,9 +28,6 @@ safe-outputs:
     branch: "*"
     allowed-files:
       - docs/**
-  dispatch-workflow:
-    workflows: [doc-phase-6-verification]
-    max: 1
 ---
 
 # Phase 5 — Documentation Coordination
@@ -126,10 +123,6 @@ All output files will be pushed to the documentation pipeline PR.
 
 ## Handoff
 
-After pushing all coordination outputs, immediately dispatch the next phase:
+## Handoff
 
-```
-dispatch_workflow("doc-phase-6-verification", inputs: {module_name: "<same module_name input>"})
-```
-
-Pass the same `module_name` value that was provided to this workflow.
+Once you have pushed all coordination outputs to the PR, the pipeline continues automatically — phase 6 (Verification) is triggered by the `pull_request: synchronize` event. No further action is needed.

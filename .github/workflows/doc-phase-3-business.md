@@ -28,9 +28,6 @@ safe-outputs:
     branch: "*"
     allowed-files:
       - docs/**
-  dispatch-workflow:
-    workflows: [doc-phase-4-technical]
-    max: 1
 ---
 
 # Phase 3 — Business Documentation
@@ -116,10 +113,4 @@ All output files will be pushed to the documentation pipeline PR.
 
 ## Handoff
 
-After pushing all business documentation outputs, immediately dispatch the next phase:
-
-```
-dispatch_workflow("doc-phase-4-technical", inputs: {module_name: "<same module_name input>"})
-```
-
-Pass the same `module_name` value that was provided to this workflow.
+Once you have pushed all business documentation outputs to the PR, the pipeline continues automatically — phase 4 (Technical) is triggered by the `pull_request: synchronize` event. No further action is needed.
