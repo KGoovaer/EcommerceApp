@@ -7,9 +7,10 @@ if: "${{ github.event.label.name == 'ai-docs-requested' }}"
 permissions:
   contents: read
   pull-requests: read
+  issues: read
   actions: read
 safe-outputs:
-  call-workflow:
+  dispatch-workflow:
     workflows: [doc-planning-agent]
     max: 1
   add-labels:
@@ -24,7 +25,9 @@ A pull request has been labeled `ai-docs-requested`, requesting AI-powered docum
 ## Your Task
 
 1. **Add the `ai-docs` label** to PR #${{ github.event.pull_request.number }}. This label is required for downstream agents to push documentation artifacts to the PR branch.
-2. **Call the `doc-planning-agent` workflow** to begin the documentation pipeline.
+2. **Dispatch the `doc-planning-agent` workflow** to begin the documentation pipeline. Pass these inputs:
+   - `pr_number`: `${{ github.event.pull_request.number }}`
+   - `branch`: Use the GitHub tool to look up PR #${{ github.event.pull_request.number }} and get the head branch name.
 
 The pipeline proceeds automatically through these phases:
 planning → discovery → business documentation → technical documentation → coordination → verification
