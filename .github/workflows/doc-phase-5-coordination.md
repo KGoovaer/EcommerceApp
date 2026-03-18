@@ -20,7 +20,7 @@ tools:
       - default
 safe-outputs:
   push-to-pull-request-branch:
-    branch: docs/pipeline-EcommerceApp
+    branch: "*"
     allowed-files:
       - docs/**
   dispatch-workflow:
@@ -37,8 +37,13 @@ You are the **Documentation Coordinator Agent**. This is phase 5 of 6 in the doc
 First, run:
 
 ```bash
-git fetch origin docs/pipeline-EcommerceApp 2>/dev/null && git checkout FETCH_HEAD -- docs/ 2>/dev/null || true
+BRANCH=$(gh pr list --search "docs: EcommerceApp documentation pipeline in:title" --state open --json headRefName --jq '.[0].headRefName' 2>/dev/null)
+PR_NUM=$(gh pr list --search "docs: EcommerceApp documentation pipeline in:title" --state open --json number --jq '.[0].number' 2>/dev/null)
+echo "Pipeline PR: #${PR_NUM} on branch ${BRANCH}"
+[ -n "$BRANCH" ] && git fetch origin "$BRANCH" && git checkout FETCH_HEAD -- docs/ || echo "Warning: could not fetch docs from branch ${BRANCH}"
 ```
+
+Note the PR number from the output above — you will need to pass it as `pull_request_number` when using the push tool later.
 
 Read `docs/EcommerceApp-state.json`. If technical phase is not marked `complete`, print "Phase 4 (technical) is not complete — aborting." and stop immediately.
 
@@ -109,7 +114,7 @@ Validate: every ID referenced in any document must appear in this registry. List
 
 Update `docs/EcommerceApp-state.json`: mark coordination phase `complete` and add all new files to `artifact_inventory`.
 
-All output files will be pushed to branch `docs/pipeline-EcommerceApp`.
+All output files will be pushed to the documentation pipeline PR. Pass `pull_request_number: <PR_NUM>` (the number from the guard check) when using the push tool.
 
 ## Handoff
 
