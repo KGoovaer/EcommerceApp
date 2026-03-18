@@ -8,6 +8,14 @@ on:
         description: "Module name (default: EcommerceApp)"
         required: false
         default: "EcommerceApp"
+      pr_number:
+        description: "PR number to push docs to"
+        required: false
+        default: ""
+      branch:
+        description: "PR head branch to push docs to"
+        required: false
+        default: ""
 timeout-minutes: 60
 permissions:
   contents: read
@@ -37,9 +45,16 @@ You are the **Documentation Coordinator Agent**. This is phase 5 of 6 in the doc
 Run this and read the output carefully — you will need `PR_NUMBER` later:
 
 ```bash
-PR_JSON=$(gh pr list --search "docs: EcommerceApp documentation pipeline in:title" --state open --json number,headRefName --jq '.[0]' 2>/dev/null || echo '{}')
-PR_NUMBER=$(echo "$PR_JSON" | grep -o '"number":[0-9]*' | grep -o '[0-9]*')
-BRANCH=$(echo "$PR_JSON" | grep -o '"headRefName":"[^"]*"' | cut -d'"' -f4)
+PR_NUMBER="${{ inputs.pr_number }}"
+BRANCH="${{ inputs.branch }}"
+
+# Fall back to auto-detection only when inputs are missing (manual re-run)
+if [ -z "$PR_NUMBER" ] || [ -z "$BRANCH" ]; then
+  PR_JSON=$(gh pr list --search "docs: EcommerceApp documentation pipeline in:title" --state open --json number,headRefName --jq '.[0]' 2>/dev/null || echo '{}')
+  [ -z "$PR_NUMBER" ] && PR_NUMBER=$(echo "$PR_JSON" | grep -o '"number":[0-9]*' | grep -o '[0-9]*')
+  [ -z "$BRANCH" ]    && BRANCH=$(echo "$PR_JSON" | grep -o '"headRefName":"[^"]*"' | cut -d'"' -f4)
+fi
+
 echo "PR_NUMBER=${PR_NUMBER}"
 echo "BRANCH=${BRANCH}"
 [ -n "$BRANCH" ] && git fetch origin "$BRANCH" && git checkout FETCH_HEAD -- docs/ 2>/dev/null || true
@@ -127,5 +142,5 @@ All output files will be pushed to the documentation pipeline PR.
 After pushing, immediately dispatch the next phase:
 
 ```
-dispatch_workflow("doc-phase-6-verification", inputs: {module_name: "EcommerceApp"})
+dispatch_workflow("doc-phase-6-verification", inputs: {module_name: "EcommerceApp", pr_number: <PR_NUMBER>, branch: "<BRANCH>"})
 ```

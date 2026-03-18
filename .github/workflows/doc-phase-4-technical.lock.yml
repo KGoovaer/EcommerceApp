@@ -22,21 +22,29 @@
 #
 # Documentation pipeline phase 4 of 6 — derive functional and technical requirements from business docs
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"0496941935a1f66809caaaa72f81d9f239871b0c653013a591eebe92a24804a4","compiler_version":"v0.61.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"6f448f0d3e27fe96bb088b9d9ee7807a71987f6714d9a697a64614b4e5db4f94","compiler_version":"v0.61.0","strict":true}
 
 name: "Doc Pipeline — 4 Technical"
 "on":
   workflow_dispatch:
     inputs:
+      branch:
+        default: ""
+        description: PR head branch to push docs to
+        required: false
       module_name:
         default: EcommerceApp
         description: "Module name (default: EcommerceApp)"
+        required: false
+      pr_number:
+        default: ""
+        description: PR number to push docs to
         required: false
 
 permissions: {}
 
 concurrency:
-  group: "gh-aw-${{ github.workflow }}"
+  group: "gh-aw-${{ github.workflow }}-${{ github.ref || github.run_id }}"
 
 run-name: "Doc Pipeline — 4 Technical"
 
@@ -115,6 +123,8 @@ jobs:
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
+          GH_AW_INPUTS_BRANCH: ${{ inputs.branch }}
+          GH_AW_INPUTS_PR_NUMBER: ${{ inputs.pr_number }}
         run: |
           bash /opt/gh-aw/actions/create_prompt_first.sh
           {
@@ -173,6 +183,8 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
+          GH_AW_INPUTS_BRANCH: ${{ inputs.branch }}
+          GH_AW_INPUTS_PR_NUMBER: ${{ inputs.pr_number }}
         with:
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
@@ -191,6 +203,8 @@ jobs:
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
+          GH_AW_INPUTS_BRANCH: ${{ inputs.branch }}
+          GH_AW_INPUTS_PR_NUMBER: ${{ inputs.pr_number }}
         with:
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
@@ -209,7 +223,9 @@ jobs:
                 GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER: process.env.GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER,
                 GH_AW_GITHUB_REPOSITORY: process.env.GH_AW_GITHUB_REPOSITORY,
                 GH_AW_GITHUB_RUN_ID: process.env.GH_AW_GITHUB_RUN_ID,
-                GH_AW_GITHUB_WORKSPACE: process.env.GH_AW_GITHUB_WORKSPACE
+                GH_AW_GITHUB_WORKSPACE: process.env.GH_AW_GITHUB_WORKSPACE,
+                GH_AW_INPUTS_BRANCH: process.env.GH_AW_INPUTS_BRANCH,
+                GH_AW_INPUTS_PR_NUMBER: process.env.GH_AW_INPUTS_PR_NUMBER
               }
             });
       - name: Validate prompt placeholders

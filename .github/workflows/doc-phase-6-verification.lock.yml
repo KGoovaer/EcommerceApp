@@ -20,23 +20,39 @@
 #
 # For more information: https://github.github.com/gh-aw/introduction/overview/
 #
-# Documentation pipeline phase 6 of 6 — cross-check all documentation against source code
+# Documentation pipeline phase 6 of 6 — cross-check all documentation against source code, with re-dispatch loop for gaps
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"f701ead62a8cdf33c0ef84dfbf7f09d4c9af70fc7c546966ad65e9d301472298","compiler_version":"v0.61.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"ced3a94fb745f74b36f7cee8550c71ec12ed58763244a63c18b1ec076986a5cb","compiler_version":"v0.61.0","strict":true}
 
 name: "Doc Pipeline — 6 Verification"
 "on":
   workflow_dispatch:
     inputs:
+      branch:
+        default: ""
+        description: PR head branch to push docs to
+        required: false
       module_name:
         default: EcommerceApp
         description: "Module name (default: EcommerceApp)"
+        required: false
+      pr_number:
+        default: ""
+        description: PR number to push docs to
+        required: false
+      retry_count:
+        default: "0"
+        description: Current retry iteration (0 = first run). Used for loop termination.
+        required: false
+      scope:
+        default: ""
+        description: "Optional scoped re-verification instruction passed by a previous verification run (e.g. 'complete documentation for modules: X, Y')"
         required: false
 
 permissions: {}
 
 concurrency:
-  group: "gh-aw-${{ github.workflow }}"
+  group: "gh-aw-${{ github.workflow }}-${{ github.ref || github.run_id }}"
 
 run-name: "Doc Pipeline — 6 Verification"
 
@@ -115,6 +131,10 @@ jobs:
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
+          GH_AW_INPUTS_BRANCH: ${{ inputs.branch }}
+          GH_AW_INPUTS_PR_NUMBER: ${{ inputs.pr_number }}
+          GH_AW_INPUTS_RETRY_COUNT: ${{ inputs.retry_count }}
+          GH_AW_INPUTS_SCOPE: ${{ inputs.scope }}
         run: |
           bash /opt/gh-aw/actions/create_prompt_first.sh
           {
@@ -127,7 +147,7 @@ jobs:
           cat "/opt/gh-aw/prompts/safe_outputs_prompt.md"
           cat << 'GH_AW_PROMPT_EOF'
           <safe-output-tools>
-          Tools: create_pull_request_review_comment, submit_pull_request_review, resolve_pull_request_review_thread, assign_to_agent, push_to_pull_request_branch, missing_tool, missing_data, noop
+          Tools: add_comment, create_pull_request_review_comment, submit_pull_request_review, resolve_pull_request_review_thread, add_labels, assign_to_agent, push_to_pull_request_branch, dispatch_workflow, missing_tool, missing_data, noop
           GH_AW_PROMPT_EOF
           cat "/opt/gh-aw/prompts/safe_outputs_push_to_pr_branch.md"
           cat << 'GH_AW_PROMPT_EOF'
@@ -173,6 +193,10 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
+          GH_AW_INPUTS_BRANCH: ${{ inputs.branch }}
+          GH_AW_INPUTS_PR_NUMBER: ${{ inputs.pr_number }}
+          GH_AW_INPUTS_RETRY_COUNT: ${{ inputs.retry_count }}
+          GH_AW_INPUTS_SCOPE: ${{ inputs.scope }}
         with:
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
@@ -191,6 +215,10 @@ jobs:
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
+          GH_AW_INPUTS_BRANCH: ${{ inputs.branch }}
+          GH_AW_INPUTS_PR_NUMBER: ${{ inputs.pr_number }}
+          GH_AW_INPUTS_RETRY_COUNT: ${{ inputs.retry_count }}
+          GH_AW_INPUTS_SCOPE: ${{ inputs.scope }}
         with:
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
@@ -209,7 +237,11 @@ jobs:
                 GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER: process.env.GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER,
                 GH_AW_GITHUB_REPOSITORY: process.env.GH_AW_GITHUB_REPOSITORY,
                 GH_AW_GITHUB_RUN_ID: process.env.GH_AW_GITHUB_RUN_ID,
-                GH_AW_GITHUB_WORKSPACE: process.env.GH_AW_GITHUB_WORKSPACE
+                GH_AW_GITHUB_WORKSPACE: process.env.GH_AW_GITHUB_WORKSPACE,
+                GH_AW_INPUTS_BRANCH: process.env.GH_AW_INPUTS_BRANCH,
+                GH_AW_INPUTS_PR_NUMBER: process.env.GH_AW_INPUTS_PR_NUMBER,
+                GH_AW_INPUTS_RETRY_COUNT: process.env.GH_AW_INPUTS_RETRY_COUNT,
+                GH_AW_INPUTS_SCOPE: process.env.GH_AW_INPUTS_SCOPE
               }
             });
       - name: Validate prompt placeholders
@@ -321,24 +353,168 @@ jobs:
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
           cat > /opt/gh-aw/safeoutputs/config.json << 'GH_AW_SAFE_OUTPUTS_CONFIG_EOF'
-          {"assign_to_agent":{"max":1},"create_pull_request_review_comment":{"max":50},"missing_data":{},"missing_tool":{},"noop":{"max":1},"push_to_pull_request_branch":{"max":1},"resolve_pull_request_review_thread":{"max":10},"submit_pull_request_review":{"max":1}}
+          {"add_comment":{"max":1},"add_labels":{"allowed":["docs-verified","docs-incomplete","docs-retry-1","docs-retry-2","docs-retry-3"],"max":3},"assign_to_agent":{"max":1},"create_missing_data_issue":{"max":1,"title_prefix":"[missing data]"},"create_pull_request_review_comment":{"max":50},"dispatch_workflow":{"max":4,"workflow_files":{"doc-phase-2-discovery":".lock.yml","doc-phase-3-business":".lock.yml","doc-phase-4-technical":".lock.yml","doc-phase-5-coordination":".lock.yml"},"workflows":["doc-phase-2-discovery","doc-phase-3-business","doc-phase-4-technical","doc-phase-5-coordination"]},"missing_data":{},"missing_tool":{},"noop":{"max":1},"push_to_pull_request_branch":{"max":1},"resolve_pull_request_review_thread":{"max":10},"submit_pull_request_review":{"max":1}}
           GH_AW_SAFE_OUTPUTS_CONFIG_EOF
       - name: Write Safe Outputs Tools
         run: |
           cat > /opt/gh-aw/safeoutputs/tools_meta.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_META_EOF'
           {
             "description_suffixes": {
+              "add_comment": " CONSTRAINTS: Maximum 1 comment(s) can be added.",
+              "add_labels": " CONSTRAINTS: Only these labels are allowed: [\"docs-verified\" \"docs-incomplete\" \"docs-retry-1\" \"docs-retry-2\" \"docs-retry-3\"].",
               "assign_to_agent": " CONSTRAINTS: Maximum 1 issue(s) can be assigned to agent.",
               "create_pull_request_review_comment": " CONSTRAINTS: Maximum 50 review comment(s) can be created. Comments will be on the RIGHT side of the diff.",
               "resolve_pull_request_review_thread": " CONSTRAINTS: Maximum 10 review thread(s) can be resolved.",
               "submit_pull_request_review": " CONSTRAINTS: Maximum 1 review(s) can be submitted."
             },
             "repo_params": {},
-            "dynamic_tools": []
+            "dynamic_tools": [
+              {
+                "_workflow_name": "doc-phase-2-discovery",
+                "description": "Dispatch the 'doc-phase-2-discovery' workflow with workflow_dispatch trigger. This workflow must support workflow_dispatch and be in .github/workflows/ directory in the same repository.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "branch": {
+                      "default": "",
+                      "description": "PR head branch to push docs to",
+                      "type": "string"
+                    },
+                    "module_name": {
+                      "default": "EcommerceApp",
+                      "description": "Module name (default: EcommerceApp)",
+                      "type": "string"
+                    },
+                    "pr_number": {
+                      "default": "",
+                      "description": "PR number to push docs to",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "name": "doc_phase_2_discovery"
+              },
+              {
+                "_workflow_name": "doc-phase-3-business",
+                "description": "Dispatch the 'doc-phase-3-business' workflow with workflow_dispatch trigger. This workflow must support workflow_dispatch and be in .github/workflows/ directory in the same repository.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "branch": {
+                      "default": "",
+                      "description": "PR head branch to push docs to",
+                      "type": "string"
+                    },
+                    "module_name": {
+                      "default": "EcommerceApp",
+                      "description": "Module name (default: EcommerceApp)",
+                      "type": "string"
+                    },
+                    "pr_number": {
+                      "default": "",
+                      "description": "PR number to push docs to",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "name": "doc_phase_3_business"
+              },
+              {
+                "_workflow_name": "doc-phase-4-technical",
+                "description": "Dispatch the 'doc-phase-4-technical' workflow with workflow_dispatch trigger. This workflow must support workflow_dispatch and be in .github/workflows/ directory in the same repository.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "branch": {
+                      "default": "",
+                      "description": "PR head branch to push docs to",
+                      "type": "string"
+                    },
+                    "module_name": {
+                      "default": "EcommerceApp",
+                      "description": "Module name (default: EcommerceApp)",
+                      "type": "string"
+                    },
+                    "pr_number": {
+                      "default": "",
+                      "description": "PR number to push docs to",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "name": "doc_phase_4_technical"
+              },
+              {
+                "_workflow_name": "doc-phase-5-coordination",
+                "description": "Dispatch the 'doc-phase-5-coordination' workflow with workflow_dispatch trigger. This workflow must support workflow_dispatch and be in .github/workflows/ directory in the same repository.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "branch": {
+                      "default": "",
+                      "description": "PR head branch to push docs to",
+                      "type": "string"
+                    },
+                    "module_name": {
+                      "default": "EcommerceApp",
+                      "description": "Module name (default: EcommerceApp)",
+                      "type": "string"
+                    },
+                    "pr_number": {
+                      "default": "",
+                      "description": "PR number to push docs to",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "name": "doc_phase_5_coordination"
+              }
+            ]
           }
           GH_AW_SAFE_OUTPUTS_TOOLS_META_EOF
           cat > /opt/gh-aw/safeoutputs/validation.json << 'GH_AW_SAFE_OUTPUTS_VALIDATION_EOF'
           {
+            "add_comment": {
+              "defaultMax": 1,
+              "fields": {
+                "body": {
+                  "required": true,
+                  "type": "string",
+                  "sanitize": true,
+                  "maxLength": 65000
+                },
+                "item_number": {
+                  "issueOrPRNumber": true
+                },
+                "repo": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              }
+            },
+            "add_labels": {
+              "defaultMax": 5,
+              "fields": {
+                "item_number": {
+                  "issueNumberOrTemporaryId": true
+                },
+                "labels": {
+                  "required": true,
+                  "type": "array",
+                  "itemType": "string",
+                  "itemSanitize": true,
+                  "itemMaxLength": 128
+                },
+                "repo": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              }
+            },
             "assign_to_agent": {
               "defaultMax": 1,
               "fields": {
@@ -827,7 +1003,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           WORKFLOW_NAME: "Doc Pipeline — 6 Verification"
-          WORKFLOW_DESCRIPTION: "Documentation pipeline phase 6 of 6 — cross-check all documentation against source code"
+          WORKFLOW_DESCRIPTION: "Documentation pipeline phase 6 of 6 — cross-check all documentation against source code, with re-dispatch loop for gaps"
           HAS_PATCH: ${{ steps.collect_output.outputs.has_patch }}
         with:
           script: |
@@ -923,7 +1099,9 @@ jobs:
     if: (always()) && (needs.agent.result != 'skipped')
     runs-on: ubuntu-slim
     permissions:
+      actions: write
       contents: write
+      discussions: write
       issues: write
       pull-requests: write
     concurrency:
@@ -1029,7 +1207,9 @@ jobs:
     if: ((!cancelled()) && (needs.agent.result != 'skipped')) && (needs.agent.outputs.detection_success == 'true')
     runs-on: ubuntu-slim
     permissions:
+      actions: write
       contents: write
+      discussions: write
       issues: write
       pull-requests: write
     timeout-minutes: 15
@@ -1044,6 +1224,8 @@ jobs:
       assign_to_agent_assignment_errors: ${{ steps.assign_to_agent.outputs.assignment_errors }}
       code_push_failure_count: ${{ steps.process_safe_outputs.outputs.code_push_failure_count }}
       code_push_failure_errors: ${{ steps.process_safe_outputs.outputs.code_push_failure_errors }}
+      comment_id: ${{ steps.process_safe_outputs.outputs.comment_id }}
+      comment_url: ${{ steps.process_safe_outputs.outputs.comment_url }}
       create_discussion_error_count: ${{ steps.process_safe_outputs.outputs.create_discussion_error_count }}
       create_discussion_errors: ${{ steps.process_safe_outputs.outputs.create_discussion_errors }}
       process_safe_outputs_processed_count: ${{ steps.process_safe_outputs.outputs.processed_count }}
@@ -1104,7 +1286,7 @@ jobs:
           GH_AW_ALLOWED_DOMAINS: "api.business.githubcopilot.com,api.enterprise.githubcopilot.com,api.github.com,api.githubcopilot.com,api.individual.githubcopilot.com,api.snapcraft.io,archive.ubuntu.com,azure.archive.ubuntu.com,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,github.com,host.docker.internal,json-schema.org,json.schemastore.org,keyserver.ubuntu.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,packagecloud.io,packages.cloud.google.com,packages.microsoft.com,ppa.launchpad.net,raw.githubusercontent.com,registry.npmjs.org,s.symcb.com,s.symcd.com,security.ubuntu.com,telemetry.enterprise.githubcopilot.com,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com"
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_API_URL: ${{ github.api_url }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_pull_request_review_comment\":{\"max\":50,\"side\":\"RIGHT\"},\"missing_data\":{},\"missing_tool\":{},\"push_to_pull_request_branch\":{\"allowed_files\":[\"docs/**\"],\"if_no_changes\":\"warn\",\"max_patch_size\":1024,\"protected_files\":[\"package.json\",\"bun.lockb\",\"bunfig.toml\",\"deno.json\",\"deno.jsonc\",\"deno.lock\",\"global.json\",\"NuGet.Config\",\"Directory.Packages.props\",\"mix.exs\",\"mix.lock\",\"go.mod\",\"go.sum\",\"stack.yaml\",\"stack.yaml.lock\",\"pom.xml\",\"build.gradle\",\"build.gradle.kts\",\"settings.gradle\",\"settings.gradle.kts\",\"gradle.properties\",\"package-lock.json\",\"yarn.lock\",\"pnpm-lock.yaml\",\"npm-shrinkwrap.json\",\"requirements.txt\",\"Pipfile\",\"Pipfile.lock\",\"pyproject.toml\",\"setup.py\",\"setup.cfg\",\"Gemfile\",\"Gemfile.lock\",\"uv.lock\",\"AGENTS.md\"],\"protected_path_prefixes\":[\".github/\",\".agents/\"]},\"resolve_pull_request_review_thread\":{\"max\":10},\"submit_pull_request_review\":{\"max\":1}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"add_comment\":{\"max\":1},\"add_labels\":{\"allowed\":[\"docs-verified\",\"docs-incomplete\",\"docs-retry-1\",\"docs-retry-2\",\"docs-retry-3\"]},\"create_pull_request_review_comment\":{\"max\":50,\"side\":\"RIGHT\"},\"dispatch_workflow\":{\"max\":4,\"workflow_files\":{\"doc-phase-2-discovery\":\".lock.yml\",\"doc-phase-3-business\":\".lock.yml\",\"doc-phase-4-technical\":\".lock.yml\",\"doc-phase-5-coordination\":\".lock.yml\"},\"workflows\":[\"doc-phase-2-discovery\",\"doc-phase-3-business\",\"doc-phase-4-technical\",\"doc-phase-5-coordination\"]},\"missing_data\":{},\"missing_tool\":{},\"push_to_pull_request_branch\":{\"allowed_files\":[\"docs/**\"],\"if_no_changes\":\"warn\",\"labels\":[\"ai-docs-requested\"],\"max_patch_size\":1024,\"protected_files\":[\"package.json\",\"bun.lockb\",\"bunfig.toml\",\"deno.json\",\"deno.jsonc\",\"deno.lock\",\"global.json\",\"NuGet.Config\",\"Directory.Packages.props\",\"mix.exs\",\"mix.lock\",\"go.mod\",\"go.sum\",\"stack.yaml\",\"stack.yaml.lock\",\"pom.xml\",\"build.gradle\",\"build.gradle.kts\",\"settings.gradle\",\"settings.gradle.kts\",\"gradle.properties\",\"package-lock.json\",\"yarn.lock\",\"pnpm-lock.yaml\",\"npm-shrinkwrap.json\",\"requirements.txt\",\"Pipfile\",\"Pipfile.lock\",\"pyproject.toml\",\"setup.py\",\"setup.cfg\",\"Gemfile\",\"Gemfile.lock\",\"uv.lock\",\"AGENTS.md\"],\"protected_path_prefixes\":[\".github/\",\".agents/\"]},\"resolve_pull_request_review_thread\":{\"max\":10},\"submit_pull_request_review\":{\"max\":1}}"
           GH_AW_CI_TRIGGER_TOKEN: ${{ secrets.GH_AW_CI_TRIGGER_TOKEN }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}

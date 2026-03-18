@@ -1,6 +1,10 @@
 name: Doc Pipeline — Coordinator
 
 on:
+  # Automatic trigger: label "ai-docs-requested" added to a PR starts phase 1
+  pull_request:
+    types: [labeled]
+  # Manual trigger: start from any phase, optionally target a specific PR
   workflow_dispatch:
     inputs:
       module_name:
@@ -11,6 +15,14 @@ on:
         description: "Phase to start from (1=planning, 2=discovery, 3=business, 4=technical, 5=coordination, 6=verification)"
         required: false
         default: "1"
+      pr_number:
+        description: "PR number to push docs to (leave empty to auto-detect from PR title)"
+        required: false
+        default: ""
+      branch:
+        description: "PR head branch to push docs to (leave empty to auto-detect)"
+        required: false
+        default: ""
 
 permissions:
   actions: write
@@ -19,27 +31,58 @@ permissions:
 jobs:
   kick-start:
     name: Kick-start Documentation Pipeline
+    # Only run on label events when the added label is "ai-docs-requested"
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.label.name == 'ai-docs-requested')
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
-      REF: ${{ github.ref_name }}
 
     steps:
-      - name: Dispatch starting phase
+      - name: Resolve PR context
+        id: ctx
         run: |
-          case "${{ inputs.start_phase }}" in
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "pr_number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "branch=${{ github.event.pull_request.head.ref }}"   >> "$GITHUB_OUTPUT"
+            echo "start_phase=1"                                       >> "$GITHUB_OUTPUT"
+            echo "module_name=EcommerceApp"                            >> "$GITHUB_OUTPUT"
+          else
+            echo "pr_number=${{ inputs.pr_number }}"   >> "$GITHUB_OUTPUT"
+            echo "branch=${{ inputs.branch }}"         >> "$GITHUB_OUTPUT"
+            echo "start_phase=${{ inputs.start_phase }}" >> "$GITHUB_OUTPUT"
+            echo "module_name=${{ inputs.module_name }}"  >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dispatch starting phase
+        env:
+          PR_NUMBER: ${{ steps.ctx.outputs.pr_number }}
+          BRANCH:    ${{ steps.ctx.outputs.branch }}
+          START_PHASE: ${{ steps.ctx.outputs.start_phase }}
+          MODULE_NAME: ${{ steps.ctx.outputs.module_name }}
+          # GH AW compiled workflows always run from the default branch
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch || github.ref_name }}
+        run: |
+          case "$START_PHASE" in
             1) WORKFLOW="doc-phase-1-planning.lock.yml" ;;
             2) WORKFLOW="doc-phase-2-discovery.lock.yml" ;;
             3) WORKFLOW="doc-phase-3-business.lock.yml" ;;
             4) WORKFLOW="doc-phase-4-technical.lock.yml" ;;
             5) WORKFLOW="doc-phase-5-coordination.lock.yml" ;;
             6) WORKFLOW="doc-phase-6-verification.lock.yml" ;;
-            *) echo "Invalid start_phase: ${{ inputs.start_phase }}"; exit 1 ;;
+            *) echo "Invalid start_phase: $START_PHASE"; exit 1 ;;
           esac
-          echo "▶ Dispatching phase ${{ inputs.start_phase }} — $WORKFLOW"
+
+          EXTRA_FIELDS=""
+          [[ -n "$PR_NUMBER" ]] && EXTRA_FIELDS="$EXTRA_FIELDS --field pr_number=${PR_NUMBER}"
+          [[ -n "$BRANCH"    ]] && EXTRA_FIELDS="$EXTRA_FIELDS --field branch=${BRANCH}"
+
+          echo "▶ Dispatching phase $START_PHASE — $WORKFLOW (PR #${PR_NUMBER:-auto}, branch: ${BRANCH:-auto})"
           gh workflow run "$WORKFLOW" \
             --repo "$REPO" \
-            --ref "$REF" \
-            --field module_name="${{ inputs.module_name }}"
-          echo "✅ Phase ${{ inputs.start_phase }} dispatched — agents will chain automatically through all remaining phases"
+            --ref  "$DEFAULT_BRANCH" \
+            --field module_name="${MODULE_NAME}" \
+            $EXTRA_FIELDS
+          echo "✅ Phase $START_PHASE dispatched — agents will chain automatically through all remaining phases"
