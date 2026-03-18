@@ -22,7 +22,7 @@
 #
 # Start the documentation pipeline when a PR is labeled ai-docs-requested
 #
-# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"3551cdf96b92660a220aa562f1bea7c5e8a67f406c5f9e1dff86cb9aff9b6008","compiler_version":"v0.61.0","strict":true}
+# gh-aw-metadata: {"schema_version":"v2","frontmatter_hash":"42c150f18fbbbfcebf8fd9371f370ac73ebaa099f74444cb17bfd869e919967d","compiler_version":"v0.61.0","strict":true}
 
 name: "Documentation Pipeline Orchestrator"
 "on":
@@ -141,7 +141,7 @@ jobs:
           cat "/opt/gh-aw/prompts/safe_outputs_prompt.md"
           cat << 'GH_AW_PROMPT_EOF'
           <safe-output-tools>
-          Tools: add_labels, call_workflow, missing_tool, missing_data, noop
+          Tools: add_labels, dispatch_workflow, missing_tool, missing_data, noop
           </safe-output-tools>
           <github-context>
           The following GitHub context information is available for this workflow:
@@ -250,6 +250,7 @@ jobs:
     permissions:
       actions: read
       contents: read
+      issues: read
       pull-requests: read
     env:
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
@@ -335,7 +336,7 @@ jobs:
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
           cat > /opt/gh-aw/safeoutputs/config.json << 'GH_AW_SAFE_OUTPUTS_CONFIG_EOF'
-          {"add_labels":{"allowed":["ai-docs"],"max":3},"call_workflow":{"max":1,"workflow_files":{"doc-planning-agent":"./.github/workflows/doc-planning-agent.lock.yml"},"workflows":["doc-planning-agent"]},"missing_data":{},"missing_tool":{},"noop":{"max":1}}
+          {"add_labels":{"allowed":["ai-docs"],"max":3},"dispatch_workflow":{"max":1,"workflow_files":{"doc-planning-agent":".lock.yml"},"workflows":["doc-planning-agent"]},"missing_data":{},"missing_tool":{},"noop":{"max":1}}
           GH_AW_SAFE_OUTPUTS_CONFIG_EOF
       - name: Write Safe Outputs Tools
         run: |
@@ -347,11 +348,28 @@ jobs:
             "repo_params": {},
             "dynamic_tools": [
               {
-                "_call_workflow_name": "doc-planning-agent",
-                "description": "Call the 'doc-planning-agent' reusable workflow via workflow_call. This workflow must support workflow_call and be in .github/workflows/ directory in the same repository.",
+                "_workflow_name": "doc-planning-agent",
+                "description": "Dispatch the 'doc-planning-agent' workflow with workflow_dispatch trigger. This workflow must support workflow_dispatch and be in .github/workflows/ directory in the same repository.",
                 "inputSchema": {
                   "additionalProperties": false,
-                  "properties": {},
+                  "properties": {
+                    "branch": {
+                      "description": "PR branch name",
+                      "type": "string"
+                    },
+                    "pr_number": {
+                      "description": "PR number to push documentation to",
+                      "type": "string"
+                    },
+                    "scope": {
+                      "description": "Scoped instruction for targeted re-run from verification",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "branch",
+                    "pr_number"
+                  ],
                   "type": "object"
                 },
                 "name": "doc_planning_agent"
@@ -846,27 +864,15 @@ jobs:
             echo "Detection found issues"
           fi
 
-  call-doc-planning-agent:
-    needs: safe_outputs
-    if: needs.safe_outputs.outputs.call_workflow_name == 'doc-planning-agent'
-    permissions:
-      actions: write
-      contents: write
-      pull-requests: write
-    uses: ./.github/workflows/doc-planning-agent.lock.yml
-    with:
-      payload: ${{ needs.safe_outputs.outputs.call_workflow_payload }}
-    secrets: inherit
-
   conclusion:
     needs:
       - activation
       - agent
-      - call-doc-planning-agent
       - safe_outputs
     if: (always()) && (needs.agent.result != 'skipped')
     runs-on: ubuntu-slim
     permissions:
+      actions: write
       contents: read
       issues: write
       pull-requests: write
@@ -992,6 +998,7 @@ jobs:
     if: ((!cancelled()) && (needs.agent.result != 'skipped')) && (needs.agent.outputs.detection_success == 'true')
     runs-on: ubuntu-slim
     permissions:
+      actions: write
       contents: read
       issues: write
       pull-requests: write
@@ -1002,8 +1009,6 @@ jobs:
       GH_AW_WORKFLOW_ID: "doc-orchestrator"
       GH_AW_WORKFLOW_NAME: "Documentation Pipeline Orchestrator"
     outputs:
-      call_workflow_name: ${{ steps.process_safe_outputs.outputs.call_workflow_name }}
-      call_workflow_payload: ${{ steps.process_safe_outputs.outputs.call_workflow_payload }}
       code_push_failure_count: ${{ steps.process_safe_outputs.outputs.code_push_failure_count }}
       code_push_failure_errors: ${{ steps.process_safe_outputs.outputs.code_push_failure_errors }}
       create_discussion_error_count: ${{ steps.process_safe_outputs.outputs.create_discussion_error_count }}
@@ -1036,7 +1041,7 @@ jobs:
           GH_AW_ALLOWED_DOMAINS: "api.business.githubcopilot.com,api.enterprise.githubcopilot.com,api.github.com,api.githubcopilot.com,api.individual.githubcopilot.com,api.snapcraft.io,archive.ubuntu.com,azure.archive.ubuntu.com,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,github.com,host.docker.internal,json-schema.org,json.schemastore.org,keyserver.ubuntu.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,packagecloud.io,packages.cloud.google.com,packages.microsoft.com,ppa.launchpad.net,raw.githubusercontent.com,registry.npmjs.org,s.symcb.com,s.symcd.com,security.ubuntu.com,telemetry.enterprise.githubcopilot.com,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com"
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_API_URL: ${{ github.api_url }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"add_labels\":{\"allowed\":[\"ai-docs\"]},\"call_workflow\":{\"max\":1,\"workflow_files\":{\"doc-planning-agent\":\"./.github/workflows/doc-planning-agent.lock.yml\"},\"workflows\":[\"doc-planning-agent\"]},\"missing_data\":{},\"missing_tool\":{}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"add_labels\":{\"allowed\":[\"ai-docs\"]},\"dispatch_workflow\":{\"max\":1,\"workflow_files\":{\"doc-planning-agent\":\".lock.yml\"},\"workflows\":[\"doc-planning-agent\"]},\"missing_data\":{},\"missing_tool\":{}}"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |

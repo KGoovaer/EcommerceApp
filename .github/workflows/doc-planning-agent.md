@@ -1,7 +1,6 @@
 ---
 description: Analyze codebase, detect language, create state file and documentation plan
 on:
-  workflow_call:
   workflow_dispatch:
     inputs:
       pr_number:
@@ -43,11 +42,9 @@ You are the first agent in an automated documentation generation pipeline runnin
 
 ## Context
 
-Determine the PR context from the available environment:
-- **Called from orchestrator (workflow_call):** PR number = `${{ github.event.pull_request.number }}`. To get the branch name, run: `gh pr view ${{ github.event.pull_request.number }} --json headRefName -q .headRefName`
-- **Dispatched directly (workflow_dispatch):** PR number = `${{ github.event.inputs.pr_number }}`, branch = `${{ github.event.inputs.branch }}`, scope = `${{ github.event.inputs.scope }}`
-
-Store the resolved PR number and branch name — you will need them for pushing artifacts and dispatching the next agent.
+- PR number: `${{ github.event.inputs.pr_number }}`
+- Branch: `${{ github.event.inputs.branch }}`
+- Scoped instruction: `${{ github.event.inputs.scope }}`
 
 ## Instructions
 
